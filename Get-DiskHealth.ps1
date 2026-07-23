@@ -35,7 +35,7 @@ function Get-DiskHealth {
   
       $UsedGB = [math]::Round($SizeGB - $FreeGB, 2)
   
-      $FreePercent = [math]::Round(($Drive.FreeSpace / $Drive.Size) * 100, 2)
+      
 
       if ($Drive.Size -gt 0) {
 
@@ -66,25 +66,19 @@ function Get-DiskHealth {
   
       [PSCustomObject]@{
 
-        ComputerName = $ComputerName
-    
-        ScanDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    
-        DriveLetter = $Drive.DeviceID
-    
-        VolumeName = $Drive.VolumeName
-    
-        FileSystem = $Drive.FileSystem
-    
-        SizeGB = $SizeGB
-    
-        FreeGB = $FreeGB
-    
-        UsedGB = $UsedGB
-    
-        FreePercent = $FreePercent
-    
-        Health = $Health
+            ComputerName = $ComputerName
+            ScanDate     = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        
+            DriveLetter  = $Drive.DeviceID
+            VolumeName   = $Drive.VolumeName
+            FileSystem   = $Drive.FileSystem
+        
+            Health       = $Health
+        
+            SizeGB       = $SizeGB
+            UsedGB       = $UsedGB
+            FreeGB       = $FreeGB
+            FreePercent  = $FreePercent
     
       }
 
