@@ -1,0 +1,86 @@
+function Get-ServiceHealth {
+
+    param(
+        [Microsoft.Management.Infrastructure.CimSession]$CimSession
+    )
+
+    $ServicesToCheck = @(
+        "wuauserv",
+        "WinDefend",
+        "mpssvc",
+        "WinRM",
+        "BITS"
+    )
+
+    # Build WMI Filter
+    $Filter = ($ServicesToCheck | ForEach-Object {
+        "Name='$_'"
+    }) -join " OR "
+
+    if ($CimSession) {
+
+        $Services = Get-CimInstance `
+            Win32_Service `
+            -Filter $Filter `
+            -CimSession $CimSession
+
+        $ComputerName = $CimSession.ComputerName
+
+    }
+    else {
+
+        $Services = Get-CimInstance `
+            Win32_Service `
+            -Filter $Filter
+
+        $ComputerName = $env:COMPUTERNAME
+
+    }
+
+    foreach ($Service in $Services) {
+
+        switch ($Service.State) {
+
+            "Running" {
+
+                $Health = "Healthy"
+
+            }
+
+            "Stopped" {
+
+                $Health = "Critical"
+
+            }
+
+            default {
+
+                $Health = "Warning"
+
+            }
+
+        }
+
+        [PSCustomObject]@{
+
+            ComputerName = $ComputerName
+
+            ScanDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+            ServiceName = $Service.Name
+
+            DisplayName = $Service.DisplayName
+
+            State = $Service.State
+
+            StartMode = $Service.StartMode
+
+            ProcessId = $Service.ProcessId
+
+            Health = $Health
+
+        }
+
+    }
+
+}
