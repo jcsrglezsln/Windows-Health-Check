@@ -1,0 +1,134 @@
+function Get-SecurityHealth {
+
+    param(
+        [Microsoft.Management.Infrastructure.CimSession]$CimSession
+    )
+
+    if ($CimSession) {
+
+        $ComputerName = $CimSession.ComputerName
+
+        $Security = Invoke-Command -ComputerName $ComputerName {
+
+            [PSCustomObject]@{
+
+                BitLocker = try {
+                    (Get-BitLockerVolume -MountPoint "C:").ProtectionStatus
+                }
+                catch {
+                    $null
+                }
+
+                Defender = try {
+                    (Get-MpComputerStatus).AntivirusEnabled
+                }
+                catch {
+                    $null
+                }
+
+                Firewall = try {
+                    (Get-NetFirewallProfile |
+                        Where-Object Enabled -eq $true).Count
+                }
+                catch {
+                    $null
+                }
+
+                TPM = try {
+                    (Get-Tpm).TpmPresent
+                }
+                catch {
+                    $null
+                }
+
+                SecureBoot = try {
+                    Confirm-SecureBootUEFI
+                }
+                catch {
+                    $null
+                }
+
+            }
+
+        }
+
+    }
+    else {
+
+        $ComputerName = $env:COMPUTERNAME
+
+        $Security = [PSCustomObject]@{
+
+            BitLocker = try {
+                (Get-BitLockerVolume -MountPoint "C:").ProtectionStatus
+            }
+            catch {
+                $null
+            }
+
+            Defender = try {
+                (Get-MpComputerStatus).AntivirusEnabled
+            }
+            catch {
+                $null
+            }
+
+            Firewall = try {
+                (Get-NetFirewallProfile |
+                    Where-Object Enabled -eq $true).Count
+            }
+            catch {
+                $null
+            }
+
+            TPM = try {
+                (Get-Tpm).TpmPresent
+            }
+            catch {
+                $null
+            }
+
+            SecureBoot = try {
+                Confirm-SecureBootUEFI
+            }
+            catch {
+                $null
+            }
+
+        }
+
+    }
+
+    # Health Evaluation
+
+    $Health = "Healthy"
+
+    if (-not $Security.Defender) {
+        $Health = "Critical"
+    }
+
+    if ($Security.Firewall -eq 0) {
+        $Health = "Critical"
+    }
+
+    [PSCustomObject]@{
+
+        ComputerName = $ComputerName
+
+        ScanDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+        BitLocker = $Security.BitLocker
+
+        Defender = $Security.Defender
+
+        FirewallProfilesEnabled = $Security.Firewall
+
+        TPM = $Security.TPM
+
+        SecureBoot = $Security.SecureBoot
+
+        Health = $Health
+
+    }
+
+}
