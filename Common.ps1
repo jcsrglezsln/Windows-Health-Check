@@ -1,20 +1,5 @@
 function Test-IsLocalComputer {
 
-    <#
-    .SYNOPSIS
-        Determines whether the target computer is the local machine.
-
-    .DESCRIPTION
-        Returns True when no CimSession is provided or when the
-        CimSession points to the local computer.
-
-    .PARAMETER CimSession
-        Optional CIM Session.
-
-    .OUTPUTS
-        Boolean
-    #>
-
     param(
         [Microsoft.Management.Infrastructure.CimSession]$CimSession
     )
@@ -25,13 +10,27 @@ function Test-IsLocalComputer {
 
     }
 
-    $Names = @(
-        $env:COMPUTERNAME.ToUpper()
-        "LOCALHOST"
-        "127.0.0.1"
-    )
+    $TargetName = $CimSession.ComputerName
 
-    if ($Names -contains $CimSession.ComputerName.ToUpper()) {
+    if ($TargetName -ieq $env:COMPUTERNAME) {
+
+        return $true
+
+    }
+
+    if ($TargetName -ieq "localhost") {
+
+        return $true
+
+    }
+
+    if ($TargetName -eq "127.0.0.1") {
+
+        return $true
+
+    }
+
+    if ($TargetName -eq "::1") {
 
         return $true
 
@@ -58,7 +57,13 @@ function Get-TargetComputerName {
         [Microsoft.Management.Infrastructure.CimSession]$CimSession
     )
 
-    if (Test-IsLocalComputer $CimSession) {
+    if (-not $CimSession) {
+
+        return $env:COMPUTERNAME
+
+    }
+
+    if ([string]::IsNullOrWhiteSpace($CimSession.ComputerName)) {
 
         return $env:COMPUTERNAME
 
