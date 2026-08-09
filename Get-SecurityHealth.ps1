@@ -1,122 +1,224 @@
+. "$PSScriptRoot\Common.ps1"
+
+
 function Get-SecurityHealth {
 
     param(
         [Microsoft.Management.Infrastructure.CimSession]$CimSession
     )
 
+
     $ComputerName = Get-TargetComputerName -CimSession $CimSession
+
 
     if (Test-IsLocalComputer -CimSession $CimSession) {
 
-        # Local
+        # ==========================
+        # LOCAL
+        # ==========================
+
+        $BitLocker = Invoke-Safely {
+
+            (Get-BitLockerVolume -MountPoint "C:").ProtectionStatus
+
+        }
+
+
+        $Defender = Invoke-Safely {
+
+            (Get-MpComputerStatus).AntivirusEnabled
+
+        }
+
+
+        $Firewall = Invoke-Safely {
+
+            (Get-NetFirewallProfile |
+                Where-Object Enabled).Count
+
+        }
+
+
+        $TPMInfo = Invoke-Safely {
+
+            Get-Tpm
+
+        }
+
+
+        $SecureBoot = Invoke-Safely {
+
+            Confirm-SecureBootUEFI
+
+        }
 
     }
     else {
 
-        # Remoto
+        # ==========================
+        # REMOTE
+        # ==========================
+
+        $BitLocker = Invoke-Command `
+            -ComputerName $ComputerName {
+
+            try {
+
+                (Get-BitLockerVolume `
+                    -MountPoint "C:").ProtectionStatus
+
+            }
+            catch {
+
+                $null
+
+            }
+
+        }
+
+
+        $Defender = Invoke-Command `
+            -ComputerName $ComputerName {
+
+            try {
+
+                (Get-MpComputerStatus).AntivirusEnabled
+
+            }
+            catch {
+
+                $null
+
+            }
+
+        }
+
+
+        $Firewall = Invoke-Command `
+            -ComputerName $ComputerName {
+
+            try {
+
+                (Get-NetFirewallProfile |
+                    Where-Object Enabled).Count
+
+            }
+            catch {
+
+                $null
+
+            }
+
+        }
+
+
+        $TPMInfo = Invoke-Command `
+            -ComputerName $ComputerName {
+
+            try {
+
+                Get-Tpm
+
+            }
+            catch {
+
+                $null
+
+            }
+
+        }
+
+
+        $SecureBoot = Invoke-Command `
+            -ComputerName $ComputerName {
+
+            try {
+
+                Confirm-SecureBootUEFI
+
+            }
+            catch {
+
+                $null
+
+            }
+
+        }
 
     }
 
-}
+
+    # ==========================
+    # TPM INFORMATION
+    # ==========================
+
+    $TPM = $TPMInfo.TpmPresent
+
+    $TPMReady = $TPMInfo.TpmReady
+
+    $TPMRestartPending = $TPMInfo.RestartPending
 
 
-$BitLocker = Invoke-Safely {
+    # ==========================
+    # HEALTH EVALUATION
+    # ==========================
 
-    (Get-BitLockerVolume -MountPoint "C:").ProtectionStatus
+    $Health = "Healthy"
 
-}
 
-$BitLocker = Invoke-Command `
-    -ComputerName $ComputerName {
+    if (-not $Defender) {
 
-    (Get-BitLockerVolume -MountPoint "C:").ProtectionStatus
+        $Health = "Critical"
 
-}
+    }
+    elseif ($Firewall -eq 0) {
 
-$Defender = Invoke-Safely {
+        $Health = "Critical"
 
-    (Get-MpComputerStatus).AntivirusEnabled
+    }
+    elseif ($BitLocker -eq "Off") {
 
-}
+        $Health = "Warning"
 
-$Defender = Invoke-Command `
-    -ComputerName $ComputerName {
+    }
+    elseif (-not $TPM) {
 
-    (Get-MpComputerStatus).AntivirusEnabled
+        $Health = "Warning"
 
-}
+    }
+    elseif (-not $SecureBoot) {
 
-$Firewall = Invoke-Safely {
+        $Health = "Warning"
 
-    (Get-NetFirewallProfile |
-        Where-Object Enabled).Count
+    }
 
-}
 
-$Firewall = Invoke-Command `
-    -ComputerName $ComputerName {
+    # ==========================
+    # RESULT
+    # ==========================
 
-    (Get-NetFirewallProfile |
-        Where-Object Enabled).Count
+    [PSCustomObject]@{
 
-}
+        ComputerName = $ComputerName
 
-$TPM = Invoke-Safely {
+        ScanDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
-    (Get-Tpm).TpmPresent
+        BitLocker = $BitLocker
 
-}
+        Defender = $Defender
 
-$TPM = Invoke-Command `
-    -ComputerName $ComputerName {
+        FirewallProfilesEnabled = $Firewall
 
-    (Get-Tpm).TpmPresent
+        TPM = $TPM
 
-}
+        TPMReady = $TPMReady
 
-$SecureBoot = Invoke-Safely {
+        TPMRestartPending = $TPMRestartPending
 
-    Confirm-SecureBootUEFI
+        SecureBoot = $SecureBoot
 
-}
+        Health = $Health
 
-$SecureBoot = Invoke-Command `
-    -ComputerName $ComputerName {
-
-    Confirm-SecureBootUEFI
-
-}
-
-$Health = "Healthy"
-
-if (-not $Defender) {
-
-    $Health = "Critical"
-
-}
-
-if ($Firewall -eq 0) {
-
-    $Health = "Critical"
-
-}
-
-[PSCustomObject]@{
-
-    ComputerName = $ComputerName
-
-    ScanDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-
-    BitLocker = $BitLocker
-
-    Defender = $Defender
-
-    FirewallProfilesEnabled = $Firewall
-
-    TPM = $TPM
-
-    SecureBoot = $SecureBoot
-
-    Health = $Health
+    }
 
 }
