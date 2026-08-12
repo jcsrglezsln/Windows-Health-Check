@@ -4,6 +4,7 @@ function Get-ServiceHealth {
         [Microsoft.Management.Infrastructure.CimSession]$CimSession
     )
 
+
     $ServicesToCheck = @(
         "wuauserv",
         "WinDefend",
@@ -12,10 +13,21 @@ function Get-ServiceHealth {
         "BITS"
     )
 
-    # Build WMI Filter
+
+    # ==========================
+    # BUILD WMI FILTER
+    # ==========================
+
     $Filter = ($ServicesToCheck | ForEach-Object {
+
         "Name='$_'"
+
     }) -join " OR "
+
+
+    # ==========================
+    # GET SERVICES
+    # ==========================
 
     if ($CimSession) {
 
@@ -37,29 +49,53 @@ function Get-ServiceHealth {
 
     }
 
+
+    # ==========================
+    # EVALUATE SERVICES
+    # ==========================
+
     foreach ($Service in $Services) {
 
-        switch ($Service.State) {
 
-            "Running" {
+        if ($Service.State -eq "Running") {
 
-                $Health = "Healthy"
-
-            }
-
-            "Stopped" {
-
-                $Health = "Critical"
-
-            }
-
-            default {
-
-                $Health = "Warning"
-
-            }
+            $Health = "Healthy"
 
         }
+        elseif (
+            $Service.State -eq "Stopped" -and
+            $Service.StartMode -eq "Auto"
+        ) {
+
+            $Health = "Critical"
+
+        }
+        elseif (
+            $Service.State -eq "Stopped" -and
+            $Service.StartMode -eq "Manual"
+        ) {
+
+            $Health = "Healthy"
+
+        }
+        elseif (
+            $Service.State -eq "Stopped" -and
+            $Service.StartMode -eq "Disabled"
+        ) {
+
+            $Health = "Healthy"
+
+        }
+        else {
+
+            $Health = "Warning"
+
+        }
+
+
+        # ==========================
+        # RESULT
+        # ==========================
 
         [PSCustomObject]@{
 
