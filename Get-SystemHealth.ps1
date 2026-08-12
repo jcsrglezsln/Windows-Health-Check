@@ -1,53 +1,153 @@
 function Get-SystemHealth {
 
+    <#
+    .SYNOPSIS
+        Performs a complete Windows system health assessment.
+
+    .DESCRIPTION
+        Collects disk, memory, service and security health information
+        from a local or remote Windows computer.
+
+    .PARAMETER CimSession
+        Optional CIM session used to query a remote computer.
+
+    .OUTPUTS
+        PSCustomObject
+    #>
+
     param(
         [Microsoft.Management.Infrastructure.CimSession]$CimSession
     )
 
-    if ($CimSession) {
 
-        $Computer = Get-CimInstance `
-            Win32_ComputerSystem `
-            -CimSession $CimSession
+    # ==========================
+    # COMPUTER NAME
+    # ==========================
 
-        $OS = Get-CimInstance `
-            Win32_OperatingSystem `
-            -CimSession $CimSession
+    $ComputerName = Get-TargetComputerName -CimSession $CimSession
+
+
+    # ==========================
+    # HEALTH MODULES
+    # ==========================
+
+    $DiskHealth = Get-DiskHealth `
+        -CimSession $CimSession
+
+    $MemoryHealth = Get-MemoryHealth `
+        -CimSession $CimSession
+
+    $ServiceHealth = Get-ServiceHealth `
+        -CimSession $CimSession
+
+    $SecurityHealth = Get-SecurityHealth `
+        -CimSession $CimSession
+
+
+    # ==========================
+    # DISK HEALTH
+    # ==========================
+
+    if ($DiskHealth.Health -contains "Critical") {
+
+        $DiskStatus = "Critical"
+
+    }
+    elseif ($DiskHealth.Health -contains "Warning") {
+
+        $DiskStatus = "Warning"
 
     }
     else {
 
-        $Computer = Get-CimInstance `
-            Win32_ComputerSystem
-
-        $OS = Get-CimInstance `
-            Win32_OperatingSystem
+        $DiskStatus = "Healthy"
 
     }
 
-    $LastBoot = $OS.LastBootUpTime
 
-    $Uptime = (New-TimeSpan `
-        -Start $LastBoot `
-        -End (Get-Date)).Days
+    # ==========================
+    # SERVICE HEALTH
+    # ==========================
+
+    if ($ServiceHealth.Health -contains "Critical") {
+
+        $ServiceStatus = "Critical"
+
+    }
+    elseif ($ServiceHealth.Health -contains "Warning") {
+
+        $ServiceStatus = "Warning"
+
+    }
+    else {
+
+        $ServiceStatus = "Healthy"
+
+    }
+
+
+    # ==========================
+    # MEMORY HEALTH
+    # ==========================
+
+    $MemoryStatus = $MemoryHealth.Health
+
+
+    # ==========================
+    # SECURITY HEALTH
+    # ==========================
+
+    $SecurityStatus = $SecurityHealth.Health
+
+
+    # ==========================
+    # OVERALL HEALTH
+    # ==========================
+
+    $HealthStates = @(
+        $DiskStatus
+        $MemoryStatus
+        $ServiceStatus
+        $SecurityStatus
+    )
+
+
+    if ($HealthStates -contains "Critical") {
+
+        $OverallHealth = "Critical"
+
+    }
+    elseif ($HealthStates -contains "Warning") {
+
+        $OverallHealth = "Warning"
+
+    }
+    else {
+
+        $OverallHealth = "Healthy"
+
+    }
+
+
+    # ==========================
+    # RESULT
+    # ==========================
 
     [PSCustomObject]@{
 
-        ComputerName = $Computer.Name
+        ComputerName   = $ComputerName
 
-        Manufacturer = $Computer.Manufacturer
+        ScanDate       = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
-        Model = $Computer.Model
+        OverallHealth  = $OverallHealth
 
-        OperatingSystem = $OS.Caption
+        DiskHealth     = $DiskStatus
 
-        Version = $OS.Version
+        MemoryHealth   = $MemoryStatus
 
-        Build = $OS.BuildNumber
+        ServiceHealth  = $ServiceStatus
 
-        LastBoot = $LastBoot
-
-        UptimeDays = $Uptime
+        SecurityHealth = $SecurityStatus
 
     }
 
