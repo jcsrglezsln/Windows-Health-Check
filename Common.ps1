@@ -24,13 +24,13 @@ function Test-IsLocalComputer {
 
     }
 
-    if ($TargetName -eq "127.0.0.1") {
+    if ($TargetName -ieq "127.0.0.1") {
 
         return $true
 
     }
 
-    if ($TargetName -eq "::1") {
+    if ($TargetName -ieq "::1") {
 
         return $true
 
@@ -39,6 +39,7 @@ function Test-IsLocalComputer {
     return $false
 
 }
+
 
 function Get-TargetComputerName {
 
@@ -73,6 +74,7 @@ function Get-TargetComputerName {
 
 }
 
+
 function Get-CimData {
 
     <#
@@ -80,10 +82,16 @@ function Get-CimData {
         Retrieves CIM information locally or remotely.
 
     .PARAMETER ClassName
+        CIM class to query.
 
     .PARAMETER Filter
+        Optional WMI/CIM filter.
 
     .PARAMETER CimSession
+        Optional CIM session for remote queries.
+
+    .OUTPUTS
+        CIM instance objects.
     #>
 
     param(
@@ -119,6 +127,7 @@ function Get-CimData {
 
 }
 
+
 function Invoke-Safely {
 
     <#
@@ -126,6 +135,10 @@ function Invoke-Safely {
         Executes a script block safely.
 
     .PARAMETER ScriptBlock
+        Script block to execute.
+
+    .OUTPUTS
+        Script block output or $null if execution fails.
     #>
 
     param(
@@ -136,6 +149,8 @@ function Invoke-Safely {
     )
 
     try {
+
+        $ErrorActionPreference = "Stop"
 
         & $ScriptBlock
 
