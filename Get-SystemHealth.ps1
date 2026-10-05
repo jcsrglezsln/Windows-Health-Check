@@ -13,6 +13,7 @@ function Get-SystemHealth {
 
     .OUTPUTS
         PSCustomObject
+        Returns an overall Windows health summary.
     #>
 
     param(
