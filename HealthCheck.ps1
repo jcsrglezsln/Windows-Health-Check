@@ -1,6 +1,8 @@
 param(
+    [ValidateNotNullOrEmpty()]
     [string]$ComputerName
 )
+
 
 # ==========================
 # LOAD MODULES
@@ -24,7 +26,9 @@ try {
 
     if ($ComputerName) {
 
-        $CimSession = New-CimSession -ComputerName $ComputerName
+        $CimSession = New-CimSession `
+            -ComputerName $ComputerName `
+            -ErrorAction Stop
 
     }
 
@@ -34,6 +38,11 @@ try {
     # ==========================
 
     Get-SystemHealth -CimSession $CimSession
+
+}
+catch {
+
+    Write-Error "Unable to perform health check: $($_.Exception.Message)"
 
 }
 finally {
