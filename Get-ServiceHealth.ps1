@@ -4,7 +4,6 @@ function Get-ServiceHealth {
         [Microsoft.Management.Infrastructure.CimSession]$CimSession
     )
 
-
     $ServicesToCheck = @(
         "wuauserv",
         "WinDefend",
@@ -12,7 +11,6 @@ function Get-ServiceHealth {
         "WinRM",
         "BITS"
     )
-
 
     # ==========================
     # BUILD WMI FILTER
@@ -29,25 +27,12 @@ function Get-ServiceHealth {
     # GET SERVICES
     # ==========================
 
-    if ($CimSession) {
+    $Services = Get-CimData `
+        -ClassName "Win32_Service" `
+        -Filter $Filter `
+        -CimSession $CimSession
 
-        $Services = Get-CimInstance `
-            Win32_Service `
-            -Filter $Filter `
-            -CimSession $CimSession
-
-        $ComputerName = $CimSession.ComputerName
-
-    }
-    else {
-
-        $Services = Get-CimInstance `
-            Win32_Service `
-            -Filter $Filter
-
-        $ComputerName = $env:COMPUTERNAME
-
-    }
+    $ComputerName = Get-TargetComputerName -CimSession $CimSession
 
 
     # ==========================
@@ -55,7 +40,6 @@ function Get-ServiceHealth {
     # ==========================
 
     foreach ($Service in $Services) {
-
 
         if ($Service.State -eq "Running") {
 
@@ -116,7 +100,5 @@ function Get-ServiceHealth {
             Health = $Health
 
         }
-
     }
-
 }
