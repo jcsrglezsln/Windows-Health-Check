@@ -4,26 +4,11 @@ function Get-MemoryHealth {
         [Microsoft.Management.Infrastructure.CimSession]$CimSession
     )
 
-    if ($CimSession) {
+    $OS = Get-CimData `
+        -ClassName "Win32_OperatingSystem" `
+        -CimSession $CimSession
 
-        $OS = Get-CimInstance `
-            Win32_OperatingSystem `
-            -CimSession $CimSession
-
-    }
-    else {
-
-        $OS = Get-CimInstance `
-            Win32_OperatingSystem
-
-    }
-
-    $ComputerName = if ($CimSession) {
-        $CimSession.ComputerName
-    }
-    else {
-        $env:COMPUTERNAME
-    }
+    $ComputerName = Get-TargetComputerName -CimSession $CimSession
 
     $TotalRAM = [math]::Round($OS.TotalVisibleMemorySize / 1MB, 2)
 
@@ -33,7 +18,10 @@ function Get-MemoryHealth {
 
     if ($TotalRAM -gt 0) {
 
-        $MemoryUsage = [math]::Round(($UsedRAM / $TotalRAM) * 100, 2)
+        $MemoryUsage = [math]::Round(
+            ($UsedRAM / $TotalRAM) * 100,
+            2
+        )
 
     }
     else {
@@ -60,20 +48,14 @@ function Get-MemoryHealth {
 
     [PSCustomObject]@{
 
-        ComputerName = $ComputerName
+        ComputerName       = $ComputerName
+        ScanDate           = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
-        ScanDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-
-        TotalRAM_GB = $TotalRAM
-
-        UsedRAM_GB = $UsedRAM
-
-        FreeRAM_GB = $FreeRAM
-
+        TotalRAM_GB        = $TotalRAM
+        UsedRAM_GB         = $UsedRAM
+        FreeRAM_GB         = $FreeRAM
         MemoryUsagePercent = $MemoryUsage
 
-        Health = $Health
-
+        Health             = $Health
     }
-
 }
