@@ -25,3 +25,17 @@ The tool classifies system health using three states:
 | Healthy | No relevant issues detected |
 | Warning | A condition requires attention |
 | Critical | A condition requires immediate attention |
+
+Architecture
+HealthCheck.ps1
+      │
+      ▼
+Get-SystemHealth
+      │
+      ├── Get-DiskHealth
+      ├── Get-MemoryHealth
+      ├── Get-ServiceHealth
+      └── Get-SecurityHealth
+              │
+              ▼
+          Common.ps1
