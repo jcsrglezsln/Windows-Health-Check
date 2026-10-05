@@ -166,9 +166,19 @@ function Get-SecurityHealth {
     $Health = "Healthy"
 
 
-    if (-not $Defender) {
+    if ($null -eq $Defender) {
+
+        $Health = "Warning"
+
+    }
+    elseif (-not $Defender) {
 
         $Health = "Critical"
+
+    }
+    elseif ($null -eq $Firewall) {
+
+        $Health = "Warning"
 
     }
     elseif ($Firewall -eq 0) {
